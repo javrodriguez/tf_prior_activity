@@ -1,0 +1,55 @@
+# R specific files
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+
+# Log files
+*.log
+
+# Output files
+results/*
+!results/.gitkeep
+
+# Data files
+data/*
+!data/.gitkeep
+
+# Environment files
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE specific files
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Large data files
+*.bw
+*.bigwig
+*.bed
+*.bed.gz
+*.tsv.gz
+*.csv.gz
+
+# But keep example files
+!examples/*.csv
+!examples/*.bw
+
+# Installers and config files
+Miniconda3-latest-MacOSX-arm64.sh
+config.tag.R 

@@ -1,0 +1,14 @@
+name: tf_prior_activity
+dependencies:
+  - r-base=4.4
+  - r-essentials
+  - bioconductor-genomicranges
+  - bioconductor-rtracklayer
+  - r-doparallel
+  - r-foreach
+  - r-data.table
+  - r-optparse
+channels:
+  - bioconda
+  - conda-forge
+  - defaults 
