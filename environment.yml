@@ -5,6 +5,19 @@ channels:
 dependencies:
   - r-base>=4.2.0
   - r-essentials
+  - zlib
+  - zlib-devel
+  - libtiff
+  - libpng
+  - openssl
+  - curl
+  - bzip2
+  - xz
+  - pcre2
+  - readline
+  - gcc_linux-64
+  - gxx_linux-64
+  - make
   - r-data.table>=1.14.0
   - r-doparallel>=1.0.17
   - r-foreach>=1.5.2
