@@ -1,15 +1,22 @@
 #!/usr/bin/env Rscript
 
+# Set CRAN mirror
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
 # Install BiocManager if not already installed
 if (!require("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
+    install.packages("BiocManager", repos = "https://cloud.r-project.org")
 }
 
 # Install required CRAN packages
 cran_packages <- c("data.table", "doParallel", "foreach", "optparse")
 for (pkg in cran_packages) {
     if (!require(pkg, quietly = TRUE)) {
-        install.packages(pkg)
+        tryCatch({
+            install.packages(pkg, repos = "https://cloud.r-project.org")
+        }, error = function(e) {
+            message(sprintf("Error installing %s: %s", pkg, e$message))
+        })
     }
 }
 
@@ -23,7 +30,11 @@ bioc_packages <- c(
 )
 
 # Install Bioconductor packages
-BiocManager::install(bioc_packages, update = FALSE)
+tryCatch({
+    BiocManager::install(bioc_packages, update = FALSE)
+}, error = function(e) {
+    message(sprintf("Error installing Bioconductor packages: %s", e$message))
+})
 
 # Verify installations
 message("\nVerifying package installations...")
