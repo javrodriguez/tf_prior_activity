@@ -1,14 +1,16 @@
 name: tf_prior_activity
-dependencies:
-  - r-base=4.4
-  - r-essentials
-  - bioconductor-genomicranges
-  - bioconductor-rtracklayer
-  - r-doparallel
-  - r-foreach
-  - r-data.table
-  - r-optparse
 channels:
-  - bioconda
   - conda-forge
-  - defaults 
+  - bioconda
+  - defaults
+dependencies:
+  - r-base=4.4.0
+  - r-data.table=1.14.10
+  - r-doparallel=1.0.17
+  - r-foreach=1.5.2
+  - r-optparse=1.7.3
+  - bioconductor-genomicranges=3.56.0
+  - bioconductor-rtracklayer=1.64.0
+  - bioconductor-genomeinfodb=1.40.0
+  - bioconductor-biostrings=2.72.0
+  - bioconductor-bsgenome.hsapiens.ucsc.hg38=1.4.5 
