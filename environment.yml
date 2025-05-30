@@ -6,7 +6,6 @@ dependencies:
   - r-base>=4.2.0
   - r-essentials
   - zlib
-  - zlib-devel
   - libtiff
   - libpng
   - openssl
