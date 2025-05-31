@@ -25,10 +25,11 @@ conda activate tf_prior_activity
 
 # Run the script for this TF
 echo "Processing $TF_NAME..."
-Rscript compute_tf_prior_activity.R --peaks data/sns_atac_phs003226/MCG001_ATAC.peaks.bed \
-                                  --motifs "$CURRENT_TF" \
-                                  --genome data/dna_sequence/chr_sizes.txt \
-                                  --output "results/${TF_NAME}_prior"
+Rscript src/prior_activity.R --peaks data/sns_atac_phs003226/MCG001_ATAC.peaks.bed \
+                           --motifs "$CURRENT_TF" \
+                           --genome data/dna_sequence/chr_sizes.txt \
+                           --gene-annot data/gene_annot/genes.csv \
+                           --output "results/${TF_NAME}_prior"
 
 # Check if the job was successful
 if [ $? -eq 0 ]; then
