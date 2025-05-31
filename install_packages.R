@@ -1,47 +1,48 @@
 #!/usr/bin/env Rscript
 
-# Set CRAN mirror
-options(repos = c(CRAN = "https://cloud.r-project.org"))
+# List of required packages
+required_packages <- c(
+  "GenomicRanges",
+  "rtracklayer",
+  "parallel",
+  "doParallel",
+  "foreach",
+  "data.table",
+  "optparse",
+  "R.utils"  # Added for reading gzipped files
+)
+
+# Function to install packages if they're not already installed
+install_if_missing <- function(package) {
+  if (!require(package, character.only = TRUE)) {
+    message(sprintf("Installing package: %s", package))
+    install.packages(package, repos = "https://cloud.r-project.org")
+  } else {
+    message(sprintf("Package already installed: %s", package))
+  }
+}
 
 # Install BiocManager if not already installed
 if (!require("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager", repos = "https://cloud.r-project.org")
+  message("Installing BiocManager...")
+  install.packages("BiocManager", repos = "https://cloud.r-project.org")
 }
 
-# Install required CRAN packages
-cran_packages <- c("data.table", "doParallel", "foreach", "optparse")
-for (pkg in cran_packages) {
-    if (!require(pkg, quietly = TRUE)) {
-        tryCatch({
-            install.packages(pkg, repos = "https://cloud.r-project.org")
-        }, error = function(e) {
-            message(sprintf("Error installing %s: %s", pkg, e$message))
-        })
-    }
-}
-
-# Install required Bioconductor packages
-bioc_packages <- c(
-    "GenomicRanges",
-    "rtracklayer",
-    "GenomeInfoDb",
-    "Biostrings",
-    "BSgenome.Hsapiens.UCSC.hg38"
-)
-
-# Install Bioconductor packages
-tryCatch({
-    BiocManager::install(bioc_packages, update = FALSE)
-}, error = function(e) {
-    message(sprintf("Error installing Bioconductor packages: %s", e$message))
-})
-
-# Verify installations
-message("\nVerifying package installations...")
-for (pkg in c(cran_packages, bioc_packages)) {
-    if (require(pkg, quietly = TRUE)) {
-        message(sprintf("✓ %s installed successfully", pkg))
+# Install required packages
+message("Installing required packages...")
+for (package in required_packages) {
+  if (package %in% c("GenomicRanges", "rtracklayer")) {
+    # Install Bioconductor packages
+    if (!require(package, character.only = TRUE)) {
+      message(sprintf("Installing Bioconductor package: %s", package))
+      BiocManager::install(package, update = FALSE)
     } else {
-        message(sprintf("✗ Failed to install %s", pkg))
+      message(sprintf("Bioconductor package already installed: %s", package))
     }
-} 
+  } else {
+    # Install CRAN packages
+    install_if_missing(package)
+  }
+}
+
+message("All required packages have been installed.") 
