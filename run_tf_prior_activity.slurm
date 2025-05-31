@@ -40,7 +40,7 @@ Rscript $R_SCRIPT \
     --motifs "$CURRENT_TF" \
     --genome "$GENOME_FILE" \
     --gene-annot "$GENE_ANNOT_FILE" \
-    --output "$OUTPUT_DIR"
+    --output "$OUTPUT_DIR" \
     --cores 8
 
 # Check if the job was successful
