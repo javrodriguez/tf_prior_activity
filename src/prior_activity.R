@@ -13,6 +13,14 @@ suppressPackageStartupMessages({
 
 # Parse command line arguments
 option_list <- list(
+  make_option(c("-p", "--peaks"), type="character", default=NULL,
+              help="Path to peaks file in BED format"),
+  make_option(c("-m", "--motifs"), type="character", default=NULL,
+              help="Path to motifs file in FIMO TSV format"),
+  make_option(c("-g", "--genome"), type="character", default=NULL,
+              help="Path to genome file with chromosome sizes"),
+  make_option(c("-o", "--output"), type="character", default=NULL,
+              help="Output directory for results"),
   make_option(c("--test"), action="store_true", default=FALSE,
               help="Run in test mode with downsampled motifs (default: FALSE)"),
   make_option(c("--batch"), action="store_true", default=FALSE,
@@ -21,6 +29,23 @@ option_list <- list(
 
 opt_parser <- OptionParser(option_list=option_list)
 opt <- parse_args(opt_parser)
+
+# Validate required arguments
+if (is.null(opt$peaks)) {
+  stop("Peaks file path is required. Use --peaks")
+}
+if (is.null(opt$motifs)) {
+  stop("Motifs file path is required. Use --motifs")
+}
+if (is.null(opt$genome)) {
+  stop("Genome file path is required. Use --genome")
+}
+if (is.null(opt$output)) {
+  stop("Output directory is required. Use --output")
+}
+
+# Create output directory if it doesn't exist
+dir.create(opt$output, showWarnings = FALSE, recursive = TRUE)
 
 # Function to read chromosome sizes
 read_chr_sizes <- function(file_path) {
@@ -68,7 +93,7 @@ read_motifs <- function(file_path, test_mode = FALSE) {
   motifs$sequence_name <- ifelse(grepl("^chr", motifs$sequence_name), motifs$sequence_name, paste0("chr", motifs$sequence_name))
   
   # Read chromosome sizes to filter motifs
-  chr_sizes <- read_chr_sizes("data/dna_sequence/chr_sizes.txt")
+  chr_sizes <- read_chr_sizes(opt$genome)
   valid_chrs <- chr_sizes$chr
   
   # Filter motifs to include only valid chromosomes
@@ -102,7 +127,7 @@ read_peaks <- function(file_path) {
   peaks$V1 <- ifelse(grepl("^chr", peaks$V1), peaks$V1, paste0("chr", peaks$V1))
   
   # Read chromosome sizes to filter peaks
-  chr_sizes <- read_chr_sizes("data/dna_sequence/chr_sizes.txt")
+  chr_sizes <- read_chr_sizes(opt$genome)
   valid_chrs <- chr_sizes$chr
   
   # Filter peaks to include only valid chromosomes
@@ -153,7 +178,7 @@ calculate_motif_activity <- function(motifs_gr, peaks_gr, tf_name, cores = 1) {
   message("Calculating motif activity...")
   
   # Read gene annotations
-  promoter_gr <- read_gene_annotations("data/gene_annot/genes.csv")
+  promoter_gr <- read_gene_annotations(opt$genome)
   
   # Find the promoter for the transcription factor
   tf_promoter <- promoter_gr[promoter_gr$gene_name == tf_name]
@@ -224,7 +249,7 @@ create_bigwig <- function(motifs_gr, activity_scores, output_file) {
   activity_gr$revmap <- NULL  # Remove the revmap column
   
   # Read chromosome sizes and set seqlengths
-  chr_sizes <- read_chr_sizes("data/dna_sequence/chr_sizes.txt")
+  chr_sizes <- read_chr_sizes(opt$genome)
   
   # Ensure consistent chromosome set
   activity_gr <- filter_to_valid_chrs(activity_gr)
@@ -262,14 +287,11 @@ main <- function() {
   motifs_dir <- "data/meme_res_0.01"
   peaks_file <- "data/sns_atac_phs003226/MCG001_ATAC.peaks.bed"
 
-  # Create output directory if it doesn't exist
-  dir.create("results", showWarnings = FALSE)
-
   # Helper to process a single motif file
   process_one <- function(motifs_file) {
     tf_name <- gsub("_fimo.tsv.gz$", "", basename(motifs_file))
-    output_csv <- sprintf("results/%s_prior.csv", tf_name)
-    output_bw <- sprintf("results/%s_prior.bw", tf_name)
+    output_csv <- sprintf("%s/%s_prior.csv", opt$output, tf_name)
+    output_bw <- sprintf("%s/%s_prior.bw", opt$output, tf_name)
 
     motifs_gr <- read_motifs(motifs_file, test_mode = opt$test)
     peaks_gr <- read_peaks(peaks_file)
