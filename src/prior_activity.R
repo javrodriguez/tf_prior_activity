@@ -45,7 +45,7 @@ message("peaks: ", opt$peaks)
 message("motifs: ", opt$motifs)
 message("genome: ", opt$genome)
 message("output: ", opt$output)
-message("gene_annot: ", opt$gene_annot)
+message("gene-annot: ", opt$`gene-annot`)
 message("test: ", opt$test)
 message("batch: ", opt$batch)
 message("motifs_dir: ", opt$motifs_dir)
@@ -67,7 +67,7 @@ if (is.null(opt$output)) {
 if (opt$batch && is.null(opt$motifs_dir)) {
   stop("Motifs directory is required in batch mode. Use --motifs-dir")
 }
-if (is.null(opt$gene_annot)) {
+if (is.null(opt$`gene-annot`)) {
   stop("Gene annotations file is required. Use --gene-annot")
 }
 
@@ -224,7 +224,7 @@ calculate_motif_activity <- function(motifs_gr, peaks_gr, tf_name, cores = 1) {
   message("Calculating motif activity...")
   
   # Read gene annotations
-  promoter_gr <- read_gene_annotations(opt$gene_annot)
+  promoter_gr <- read_gene_annotations(opt$`gene-annot`)
   
   # Find the promoter for the transcription factor
   tf_promoter <- promoter_gr[promoter_gr$gene_name == tf_name]
