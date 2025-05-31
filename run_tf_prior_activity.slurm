@@ -2,8 +2,9 @@
 #SBATCH --job-name=tf_prior
 #SBATCH --output=logs/tf_prior_%A_%a.log
 #SBATCH --error=logs/tf_prior_%A_%a.err
-#SBATCH --time=72:00:00
-#SBATCH --cpus-per-task=1
+##SBATCH --time=72:00:00
+#SBATCH -p gpu4_short
+#SBATCH -c 8
 #SBATCH --mem=32G
 #SBATCH --array=1-5
 
