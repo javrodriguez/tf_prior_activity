@@ -11,6 +11,9 @@ suppressPackageStartupMessages({
   library(optparse)
 })
 
+# Get number of available cores
+num_cores <- parallel::detectCores()
+
 # Parse command line arguments
 option_list <- list(
   make_option(c("-p", "--peaks"), type="character", default=NULL,
@@ -24,7 +27,13 @@ option_list <- list(
   make_option(c("--test"), action="store_true", default=FALSE,
               help="Run in test mode with downsampled motifs (default: FALSE)"),
   make_option(c("--batch"), action="store_true", default=FALSE,
-              help="Process all motif files in batch mode (default: FALSE)")
+              help="Process all motif files in batch mode (default: FALSE)"),
+  make_option(c("--motifs-dir"), type="character", default=NULL,
+              help="Directory containing motif files (required for batch mode)"),
+  make_option(c("--gene-annot"), type="character", default=NULL,
+              help="Path to gene annotations file (required for TF promoter analysis)"),
+  make_option(c("--cores"), type="integer", default=num_cores,
+              help=sprintf("Number of CPU cores to use (default: %d, all available cores)", num_cores))
 )
 
 opt_parser <- OptionParser(option_list=option_list)
@@ -34,7 +43,7 @@ opt <- parse_args(opt_parser)
 if (is.null(opt$peaks)) {
   stop("Peaks file path is required. Use --peaks")
 }
-if (is.null(opt$motifs)) {
+if (is.null(opt$motifs) && !opt$batch) {
   stop("Motifs file path is required. Use --motifs")
 }
 if (is.null(opt$genome)) {
@@ -42,6 +51,12 @@ if (is.null(opt$genome)) {
 }
 if (is.null(opt$output)) {
   stop("Output directory is required. Use --output")
+}
+if (opt$batch && is.null(opt$motifs_dir)) {
+  stop("Motifs directory is required in batch mode. Use --motifs-dir")
+}
+if (is.null(opt$gene_annot)) {
+  stop("Gene annotations file is required. Use --gene-annot")
 }
 
 # Create output directory if it doesn't exist
@@ -178,7 +193,7 @@ calculate_motif_activity <- function(motifs_gr, peaks_gr, tf_name, cores = 1) {
   message("Calculating motif activity...")
   
   # Read gene annotations
-  promoter_gr <- read_gene_annotations(opt$genome)
+  promoter_gr <- read_gene_annotations(opt$gene_annot)
   
   # Find the promoter for the transcription factor
   tf_promoter <- promoter_gr[promoter_gr$gene_name == tf_name]
@@ -283,10 +298,6 @@ main <- function() {
   # Start timing
   start_time <- Sys.time()
 
-  # File paths
-  motifs_dir <- "data/meme_res_0.01"
-  peaks_file <- "data/sns_atac_phs003226/MCG001_ATAC.peaks.bed"
-
   # Helper to process a single motif file
   process_one <- function(motifs_file) {
     tf_name <- gsub("_fimo.tsv.gz$", "", basename(motifs_file))
@@ -294,8 +305,8 @@ main <- function() {
     output_bw <- sprintf("%s/%s_prior.bw", opt$output, tf_name)
 
     motifs_gr <- read_motifs(motifs_file, test_mode = opt$test)
-    peaks_gr <- read_peaks(peaks_file)
-    activity_scores <- calculate_motif_activity(motifs_gr, peaks_gr, tf_name, cores = detectCores() - 1)
+    peaks_gr <- read_peaks(opt$peaks)
+    activity_scores <- calculate_motif_activity(motifs_gr, peaks_gr, tf_name, cores = opt$cores)
 
     # Create a data frame with all chromosomes, even if empty
     valid_chrs <- c(paste0("chr", 1:22), "chrX")
@@ -323,7 +334,7 @@ main <- function() {
   }
 
   if (opt$batch) {
-    motif_files <- list.files(motifs_dir, pattern = "_fimo.tsv.gz$", full.names = TRUE)
+    motif_files <- list.files(opt$motifs_dir, pattern = "_fimo.tsv.gz$", full.names = TRUE)
     message(sprintf("Batch mode: Found %d motif files.", length(motif_files)))
     for (motifs_file in motif_files) {
       message(sprintf("\nProcessing %s", motifs_file))
@@ -331,13 +342,17 @@ main <- function() {
     }
   } else if (opt$test) {
     message("Test mode: Processing ASCL1 only...")
-    motifs_file <- file.path(motifs_dir, "ASCL1_fimo.tsv.gz")
-    if (!file.exists(motifs_file)) {
-      stop(sprintf("Test file %s not found", motifs_file))
+    if (!file.exists(opt$motifs)) {
+      stop(sprintf("Test file %s not found", opt$motifs))
     }
-    process_one(motifs_file)
+    process_one(opt$motifs)
   } else {
-    stop("Please specify either --test or --batch mode")
+    # Single file mode
+    if (!file.exists(opt$motifs)) {
+      stop(sprintf("Motif file %s not found", opt$motifs))
+    }
+    message(sprintf("Processing single motif file: %s", opt$motifs))
+    process_one(opt$motifs)
   }
 
   # Print timing information
