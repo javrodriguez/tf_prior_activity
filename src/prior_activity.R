@@ -162,30 +162,49 @@ read_peaks <- function(file_path) {
 
 # Function to read gene annotations
 read_gene_annotations <- function(file_path) {
-  message("Reading gene annotations...")
-  genes <- fread(file_path)
+  message(sprintf("Reading gene annotations from: %s", file_path))
+  if (!file.exists(file_path)) {
+    stop(sprintf("Gene annotations file does not exist: %s", file_path))
+  }
   
-  # Calculate TSS based on strand
-  genes[, tss := ifelse(strand == "+", start, end)]
-  
-  # Define promoter regions based on strand
-  # For + strand: TSS-2000 to TSS+500
-  # For - strand: TSS-500 to TSS+2000
-  genes[, promoter_start := ifelse(strand == "+", tss - 2000, tss - 500)]
-  genes[, promoter_end := ifelse(strand == "+", tss + 500, tss + 2000)]
-  
-  # Create GRanges object for promoter regions
-  promoter_gr <- GRanges(
-    seqnames = genes$chr,
-    ranges = IRanges(start = genes$promoter_start, end = genes$promoter_end),
-    gene_name = genes$gene_name,
-    strand = genes$strand
-  )
-  
-  # Ensure consistent chromosome set
-  promoter_gr <- filter_to_valid_chrs(promoter_gr)
-  
-  return(promoter_gr)
+  tryCatch({
+    genes <- fread(file_path)
+    message("Successfully read gene annotations file")
+    message(sprintf("Number of genes: %d", nrow(genes)))
+    message("Columns found: ", paste(names(genes), collapse=", "))
+    
+    # Check required columns
+    required_cols <- c("chr", "start", "end", "strand", "gene_name")
+    missing_cols <- setdiff(required_cols, names(genes))
+    if (length(missing_cols) > 0) {
+      stop(sprintf("Missing required columns in gene annotations file: %s", 
+                  paste(missing_cols, collapse=", ")))
+    }
+    
+    # Calculate TSS based on strand
+    genes[, tss := ifelse(strand == "+", start, end)]
+    
+    # Define promoter regions based on strand
+    # For + strand: TSS-2000 to TSS+500
+    # For - strand: TSS-500 to TSS+2000
+    genes[, promoter_start := ifelse(strand == "+", tss - 2000, tss - 500)]
+    genes[, promoter_end := ifelse(strand == "+", tss + 500, tss + 2000)]
+    
+    # Create GRanges object for promoter regions
+    promoter_gr <- GRanges(
+      seqnames = genes$chr,
+      ranges = IRanges(start = genes$promoter_start, end = genes$promoter_end),
+      gene_name = genes$gene_name,
+      strand = genes$strand
+    )
+    
+    # Ensure consistent chromosome set
+    promoter_gr <- filter_to_valid_chrs(promoter_gr)
+    
+    return(promoter_gr)
+  }, error = function(e) {
+    stop(sprintf("Error reading gene annotations file: %s", e$message))
+  })
 }
 
 # Function to calculate motif activity
