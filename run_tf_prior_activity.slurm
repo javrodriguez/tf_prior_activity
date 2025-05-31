@@ -24,13 +24,21 @@ TF_NAME=$(basename "$CURRENT_TF" _fimo.tsv.gz)
 source ~/home_abl/miniconda3/etc/profile.d/conda.sh
 conda activate tf_prior_activity
 
+# Convert relative paths to absolute paths
+PEAKS_FILE=$(realpath data/sns_atac_phs003226/MCG001_ATAC.peaks.bed)
+GENOME_FILE=$(realpath data/dna_sequence/chr_sizes.txt)
+GENE_ANNOT_FILE=$(realpath data/gene_annot/genes.csv)
+OUTPUT_DIR=$(realpath results/${TF_NAME}_prior)
+R_SCRIPT=$(realpath src/prior_activity.R)
+
 # Run the script for this TF
 echo "Processing $TF_NAME..."
-Rscript src/prior_activity.R --peaks data/sns_atac_phs003226/MCG001_ATAC.peaks.bed \
-                           --motifs "$CURRENT_TF" \
-                           --genome data/dna_sequence/chr_sizes.txt \
-                           --gene-annot data/gene_annot/genes.csv \
-                           --output "results/${TF_NAME}_prior"
+Rscript $R_SCRIPT \
+    --peaks "$PEAKS_FILE" \
+    --motifs "$CURRENT_TF" \
+    --genome "$GENOME_FILE" \
+    --gene-annot "$GENE_ANNOT_FILE" \
+    --output "$OUTPUT_DIR"
 
 # Check if the job was successful
 if [ $? -eq 0 ]; then
