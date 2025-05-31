@@ -1,11 +1,16 @@
 #!/bin/bash
+
+# Calculate number of TF files before SLURM directives
+NUM_TFS=$(ls data/meme_res_0.01/*_fimo.tsv.gz | wc -l)
+ARRAY_SIZE=$((NUM_TFS - 1))
+
 #SBATCH --job-name=tf_prior_activity
 #SBATCH --output=logs/tf_prior_%A_%a.log
 #SBATCH --error=logs/tf_prior_%A_%a.err
 #SBATCH --time=72:00:00
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=32G
-#SBATCH --array=0-$(ls data/meme_res_0.01/*_fimo.tsv.gz | wc -l)-1
+#SBATCH --array=0-${ARRAY_SIZE}
 
 # Create logs directory if it doesn't exist
 mkdir -p logs
