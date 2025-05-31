@@ -1,16 +1,11 @@
 #!/bin/bash
-
-# Calculate number of TF files before SLURM directives
-NUM_TFS=$(ls data/meme_res_0.01/*_fimo.tsv.gz | wc -l)
-ARRAY_SIZE=$((NUM_TFS - 1))
-
-#SBATCH --job-name=tf_prior_activity
+#SBATCH --job-name=tf_prior
 #SBATCH --output=logs/tf_prior_%A_%a.log
 #SBATCH --error=logs/tf_prior_%A_%a.err
 #SBATCH --time=72:00:00
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=32G
-#SBATCH --array=0-${ARRAY_SIZE}
+#SBATCH --array=1-5
 
 # Create logs directory if it doesn't exist
 mkdir -p logs
@@ -18,8 +13,8 @@ mkdir -p logs
 # Get the list of TF files
 mapfile -t TF_FILES < <(ls data/meme_res_0.01/*_fimo.tsv.gz)
 
-# Get the current TF file based on array index
-CURRENT_TF=${TF_FILES[$SLURM_ARRAY_TASK_ID]}
+# Get the current TF file based on array index (subtract 1 since array is 1-based)
+CURRENT_TF=${TF_FILES[$((SLURM_ARRAY_TASK_ID-1))]}
 
 # Extract TF name from filename (remove path and _fimo.tsv.gz)
 TF_NAME=$(basename "$CURRENT_TF" _fimo.tsv.gz)
