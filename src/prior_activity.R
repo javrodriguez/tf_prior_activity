@@ -39,6 +39,18 @@ option_list <- list(
 opt_parser <- OptionParser(option_list=option_list)
 opt <- parse_args(opt_parser)
 
+# Debug: Print all arguments
+message("Command line arguments:")
+message("peaks: ", opt$peaks)
+message("motifs: ", opt$motifs)
+message("genome: ", opt$genome)
+message("output: ", opt$output)
+message("gene_annot: ", opt$gene_annot)
+message("test: ", opt$test)
+message("batch: ", opt$batch)
+message("motifs_dir: ", opt$motifs_dir)
+message("cores: ", opt$cores)
+
 # Validate required arguments
 if (is.null(opt$peaks)) {
   stop("Peaks file path is required. Use --peaks")
