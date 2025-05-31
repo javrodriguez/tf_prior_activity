@@ -235,9 +235,8 @@ calculate_motif_activity <- function(motifs_gr, peaks_gr, tf_name, cores = 1) {
   # Check if any peak overlaps with the TF's promoter
   promoter_overlaps <- findOverlaps(tf_promoter, peaks_gr)
   if (length(promoter_overlaps) == 0) {
-    message(sprintf("No peaks overlap with %s promoter. Skipping motif activity calculation.", tf_name))
-    # Return a vector of zeros with the same length as motifs_gr
-    return(numeric(length(motifs_gr)))
+    message(sprintf("No peaks overlap with %s promoter. Skipping this TF.", tf_name))
+    quit(status = 0)  # Exit with success status
   }
   
   message(sprintf("Found %d peaks overlapping with %s promoter. Proceeding with motif activity calculation.", 
