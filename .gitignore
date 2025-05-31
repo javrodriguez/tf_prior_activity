@@ -24,6 +24,8 @@ results/*
 # Data files
 data/*
 !data/.gitkeep
+!data/sns_atac_phs003226/
+!data/sns_atac_phs003226/*.bed
 
 # Environment files
 .env
@@ -41,7 +43,6 @@ ENV/
 # Large data files
 *.bw
 *.bigwig
-*.bed
 *.bed.gz
 *.tsv.gz
 *.csv.gz
