@@ -287,12 +287,25 @@ create_bigwig <- function(motifs_gr, activity_scores, output_file) {
   # Sort by chromosome and start position
   activity_gr <- sort(activity_gr)
   
-  # Merge overlapping ranges, keeping the maximum score, ignoring strand
-  message("Merging overlapping motifs...")
-  activity_gr <- reduce(activity_gr, with.revmap=TRUE, ignore.strand=TRUE)
-  # For each merged range, take the maximum score from the original ranges
-  activity_gr$score <- sapply(activity_gr$revmap, function(x) max(activity_scores[x]))
-  activity_gr$revmap <- NULL  # Remove the revmap column
+  # Process each chromosome separately to reduce memory usage
+  message("Merging overlapping motifs by chromosome...")
+  merged_chrs <- list()
+  for (chr in unique(seqnames(activity_gr))) {
+    message(sprintf("Processing chromosome %s...", chr))
+    chr_gr <- activity_gr[seqnames(activity_gr) == chr]
+    
+    # Merge overlapping ranges, keeping the maximum score, ignoring strand
+    chr_merged <- reduce(chr_gr, with.revmap=TRUE, ignore.strand=TRUE)
+    # For each merged range, take the maximum score from the original ranges
+    chr_merged$score <- sapply(chr_merged$revmap, function(x) max(activity_scores[x]))
+    chr_merged$revmap <- NULL  # Remove the revmap column
+    
+    merged_chrs[[chr]] <- chr_merged
+    gc()  # Force garbage collection after each chromosome
+  }
+  
+  # Combine all chromosomes
+  activity_gr <- do.call(c, merged_chrs)
   
   # Read chromosome sizes and set seqlengths
   chr_sizes <- read_chr_sizes(opt$genome)
