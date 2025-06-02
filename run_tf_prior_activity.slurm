@@ -4,7 +4,7 @@
 #SBATCH --error=logs/tf_prior_%A_%a.err
 #SBATCH -p gpu4_short
 #SBATCH -c 8
-#SBATCH --mem=32G
+#SBATCH --mem=64G
 #SBATCH --array=1-5
 
 # Create logs directory if it doesn't exist
