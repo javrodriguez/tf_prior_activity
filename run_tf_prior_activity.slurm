@@ -2,11 +2,10 @@
 #SBATCH --job-name=tf_prior
 #SBATCH --output=logs/tf_prior_%A_%a.log
 #SBATCH --error=logs/tf_prior_%A_%a.err
-##SBATCH --time=100:00:00
-#SBATCH -p gpu4_long
+#SBATCH -p gpu4_short
 #SBATCH -c 8
 #SBATCH --mem=32G
-#SBATCH --array=1-629
+#SBATCH --array=1-5
 
 # Create logs directory if it doesn't exist
 mkdir -p logs
@@ -33,6 +32,13 @@ GENE_ANNOT_FILE=$(realpath data/gene_annot/genes.csv)
 OUTPUT_DIR=$(realpath results/${TF_NAME}_prior)
 R_SCRIPT=$(realpath src/prior_activity.R)
 
+echo $CURRENT_TF
+echo $PEAKS_FILE
+echo $GENOME_FILE
+echo $GENE_ANNOT_FILE
+echo $OUTPUT_DIR
+echo $R_SCRIPT
+
 # Run the script for this TF
 echo "Processing $TF_NAME..."
 Rscript $R_SCRIPT \
@@ -46,6 +52,7 @@ Rscript $R_SCRIPT \
 # Check if the job was successful
 if [ $? -eq 0 ]; then
     echo "Successfully processed $TF_NAME"
+    exit 0
 else
     echo "Error processing $TF_NAME"
     exit 1
