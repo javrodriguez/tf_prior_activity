@@ -3,7 +3,7 @@
 #SBATCH --output=logs/tf_prior_%A_%a.log
 #SBATCH --error=logs/tf_prior_%A_%a.err
 ##SBATCH --time=100:00:00
-#SBATCH -p gpu4_long
+#SBATCH -p gpu4_short
 #SBATCH -c 8
 #SBATCH --mem=32G
 #SBATCH --array=1-629
