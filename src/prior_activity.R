@@ -289,7 +289,7 @@ create_bigwig <- function(motifs_gr, activity_scores, output_file) {
   
   # Process each chromosome separately to reduce memory usage
   message("Merging overlapping motifs by chromosome...")
-  merged_chrs <- list()
+  merged_chrs <- GRangesList()  # Use GRangesList instead of list
   for (chr in unique(seqnames(activity_gr))) {
     message(sprintf("Processing chromosome %s...", chr))
     chr_gr <- activity_gr[seqnames(activity_gr) == chr]
@@ -305,7 +305,7 @@ create_bigwig <- function(motifs_gr, activity_scores, output_file) {
   }
   
   # Combine all chromosomes
-  activity_gr <- do.call(c, merged_chrs)
+  activity_gr <- unlist(merged_chrs)
   
   # Read chromosome sizes and set seqlengths
   chr_sizes <- read_chr_sizes(opt$genome)
