@@ -1,0 +1,110 @@
+# Instructions for Installing Clean Local Conda Environment
+
+## Step 1: Download Miniconda
+```bash
+# Navigate to your project directory
+cd /Users/rodrij92/Projects/B-ALL_foundation_model/data/tf_prior_activity
+
+# Download Miniconda installer
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+```
+
+## Step 2: Install Miniconda
+```bash
+# Make the installer executable
+chmod +x Miniconda3-latest-Linux-x86_64.sh
+
+# Install Miniconda in your project directory
+./Miniconda3-latest-Linux-x86_64.sh -b -p ./miniconda3
+
+# Remove the installer
+rm Miniconda3-latest-Linux-x86_64.sh
+```
+
+## Step 3: Initialize the New Conda Installation
+```bash
+# Initialize conda for your shell
+./miniconda3/bin/conda init bash
+
+# Close and reopen your terminal, or run:
+source ~/.bashrc
+
+# Verify conda is properly initialized
+./miniconda3/bin/conda info
+```
+
+## Step 4: Create a New Environment
+```bash
+# Create a new environment with Python 3.10 (matching the Singularity container)
+./miniconda3/bin/conda create -n tf_prior_activity python=3.10
+
+# Now you can activate the environment (after conda init)
+conda activate tf_prior_activity
+```
+
+## Step 5: Install Required Packages
+```bash
+# Add required channels in the correct order
+conda config --env --add channels defaults
+conda config --env --add channels bioconda
+conda config --env --add channels conda-forge
+
+# Install R and essential packages first
+conda install -y -c conda-forge r-base=4.2.3 r-essentials
+
+# Install Bioconductor packages one by one
+conda install -y -c bioconda bioconductor-tfbstools=1.36.0
+conda install -y -c bioconda bioconductor-jaspar2020=0.99.10
+conda install -y -c bioconda bioconductor-bsgenome.hsapiens.ucsc.hg38=1.4.4
+
+# Install Python packages
+conda install -y -c conda-forge numpy pandas scipy scikit-learn matplotlib seaborn jupyter
+```
+
+## Step 6: Verify Installation
+```bash
+# Check conda version and environment
+conda info
+
+# Check R version
+R --version
+
+# Check Python version
+python --version
+
+# Verify Bioconductor packages
+R -e "library(TFBSTools); library(JASPAR2020); library(BSgenome.Hsapiens.UCSC.hg38)"
+```
+
+## Step 7: Update Your .bashrc
+Add these lines to your ~/.bashrc to use the local conda installation:
+```bash
+# Add to ~/.bashrc
+export PATH="/Users/rodrij92/Projects/B-ALL_foundation_model/data/tf_prior_activity/miniconda3/bin:$PATH"
+```
+
+## Notes
+- This installation is local to your project directory and won't interfere with your system conda
+- The environment matches the packages in your Singularity container
+- You can activate the environment using: `conda activate tf_prior_activity`
+- To deactivate: `conda deactivate`
+
+## Troubleshooting
+If you encounter permission issues:
+```bash
+# Make sure you have write permissions
+chmod -R u+w ./miniconda3
+```
+
+If you need to remove the installation:
+```bash
+# Remove the entire miniconda3 directory
+rm -rf ./miniconda3
+```
+
+If conda activate doesn't work:
+```bash
+# Make sure conda is properly initialized
+./miniconda3/bin/conda init bash
+source ~/.bashrc
+``` 

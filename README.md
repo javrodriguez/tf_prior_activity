@@ -32,7 +32,7 @@ Rscript install_packages.R
 
 ## Usage
 
-The main script `compute_tf_prior_activity.R` computes TF prior activity scores based on motif analysis and ATAC-seq peaks.
+The main script `prior_activity.R` computes TF prior activity scores based on motif analysis and ATAC-seq peaks.
 
 ### Input Files Required
 - ATAC-seq peaks in BED format
@@ -41,7 +41,7 @@ The main script `compute_tf_prior_activity.R` computes TF prior activity scores 
 
 ### Running the Script
 ```bash
-Rscript compute_tf_prior_activity.R --peaks <peaks.bed> --motifs <motifs.meme> --genome <genome.fa> --output <output_dir>
+Rscript prior_activity.R --peaks <peaks.bed> --motifs <motifs.meme> --genome <genome.fa> --output <output_dir>
 ```
 
 ### Output
@@ -50,11 +50,11 @@ The script generates TF activity scores for each sample, stored in the specified
 ## Project Structure
 ```
 tf_prior_activity/
-├── compute_tf_prior_activity.R  # Main script
-├── environment.yml             # Conda environment specification
-├── install_packages.R          # R package installation script
-├── README.md                   # This file
-└── .gitignore                 # Git ignore file
+├── src/
+├── examples/                # Example data and usage
+├── data/                    # Data directory for input files
+├── environment.yml         # Conda environment specification
+├── install_packages.R      # R package installation script
 ```
 
 ## Dependencies
