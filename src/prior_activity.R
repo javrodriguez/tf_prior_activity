@@ -103,41 +103,97 @@ filter_to_valid_chrs <- function(gr) {
 
 # Function to read and process motifs file
 read_motifs <- function(file_path, test_mode = FALSE) {
-  message("Reading motifs file...")
-  motifs <- fread(file_path)
+  message(sprintf("Reading motifs file: %s", file_path))
   
-  if (test_mode) {
-    message("Test mode: Downsampling motifs to 100,000...")
-    if (nrow(motifs) > 100000) {
-      set.seed(42)  # For reproducibility
-      motifs <- motifs[sample(.N, 100000)]
-    }
+  # Check if file exists
+  if (!file.exists(file_path)) {
+    stop(sprintf("Motifs file does not exist: %s", file_path))
   }
   
-  message(sprintf("Using %d motifs", nrow(motifs)))
+  # Check if file is empty
+  if (file.size(file_path) == 0) {
+    stop(sprintf("Motifs file is empty: %s", file_path))
+  }
   
-  # Add 'chr' prefix if not present
-  motifs$sequence_name <- ifelse(grepl("^chr", motifs$sequence_name), motifs$sequence_name, paste0("chr", motifs$sequence_name))
-  
-  # Read chromosome sizes to filter motifs
-  chr_sizes <- read_chr_sizes(opt$genome)
-  valid_chrs <- chr_sizes$chr
-  
-  # Filter motifs to include only valid chromosomes
-  motifs <- motifs[motifs$sequence_name %in% valid_chrs]
-  
-  # Convert to GRanges
-  gr <- GRanges(
-    seqnames = motifs$sequence_name,
-    ranges = IRanges(start = motifs$start, end = motifs$stop),
-    strand = motifs$strand,
-    score = motifs$score
-  )
-  
-  # Ensure consistent chromosome set
-  gr <- filter_to_valid_chrs(gr)
-  
-  return(gr)
+  # Try to read the file with error handling
+  tryCatch({
+    # First try to read with fread
+    motifs <- fread(file_path)
+    
+    if (test_mode) {
+      message("Test mode: Downsampling motifs to 100,000...")
+      if (nrow(motifs) > 100000) {
+        set.seed(42)  # For reproducibility
+        motifs <- motifs[sample(.N, 100000)]
+      }
+    }
+    
+    message(sprintf("Using %d motifs", nrow(motifs)))
+    
+    # Add 'chr' prefix if not present
+    motifs$sequence_name <- ifelse(grepl("^chr", motifs$sequence_name), motifs$sequence_name, paste0("chr", motifs$sequence_name))
+    
+    # Read chromosome sizes to filter motifs
+    chr_sizes <- read_chr_sizes(opt$genome)
+    valid_chrs <- chr_sizes$chr
+    
+    # Filter motifs to include only valid chromosomes
+    motifs <- motifs[motifs$sequence_name %in% valid_chrs]
+    
+    # Convert to GRanges
+    gr <- GRanges(
+      seqnames = motifs$sequence_name,
+      ranges = IRanges(start = motifs$start, end = motifs$stop),
+      strand = motifs$strand,
+      score = motifs$score
+    )
+    
+    # Ensure consistent chromosome set
+    gr <- filter_to_valid_chrs(gr)
+    
+    return(gr)
+  }, error = function(e) {
+    # If fread fails, try to read with read.table
+    message("Error reading with fread, trying read.table...")
+    tryCatch({
+      motifs <- read.table(file_path, header = TRUE, stringsAsFactors = FALSE)
+      
+      if (test_mode) {
+        message("Test mode: Downsampling motifs to 100,000...")
+        if (nrow(motifs) > 100000) {
+          set.seed(42)
+          motifs <- motifs[sample(nrow(motifs), 100000), ]
+        }
+      }
+      
+      message(sprintf("Using %d motifs", nrow(motifs)))
+      
+      # Add 'chr' prefix if not present
+      motifs$sequence_name <- ifelse(grepl("^chr", motifs$sequence_name), motifs$sequence_name, paste0("chr", motifs$sequence_name))
+      
+      # Read chromosome sizes to filter motifs
+      chr_sizes <- read_chr_sizes(opt$genome)
+      valid_chrs <- chr_sizes$chr
+      
+      # Filter motifs to include only valid chromosomes
+      motifs <- motifs[motifs$sequence_name %in% valid_chrs, ]
+      
+      # Convert to GRanges
+      gr <- GRanges(
+        seqnames = motifs$sequence_name,
+        ranges = IRanges(start = motifs$start, end = motifs$stop),
+        strand = motifs$strand,
+        score = motifs$score
+      )
+      
+      # Ensure consistent chromosome set
+      gr <- filter_to_valid_chrs(gr)
+      
+      return(gr)
+    }, error = function(e2) {
+      stop(sprintf("Failed to read motifs file %s. Error: %s", file_path, e2$message))
+    })
+  })
 }
 
 # Function to read and process peaks file
