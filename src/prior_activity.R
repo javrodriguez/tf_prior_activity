@@ -290,17 +290,16 @@ calculate_motif_activity <- function(motifs_gr, peaks_gr, tf_name, cores = 1) {
   # Clean up parallel processing
   stopCluster(cl)
   
-  # Apply Min-Max normalization
-  message("Applying Min-Max normalization to motif scores...")
-  
-  # Get min and max values
+  # Min-Max normalization directly on raw motif scores
+  message("Applying Min-Max normalization directly to raw motif scores...")
   min_score <- min(results)
   max_score <- max(results)
-  
-  # Apply Min-Max normalization: (x - min(x)) / (max(x) - min(x))
-  results <- (results - min_score) / (max_score - min_score)
-  
-  # Log the transformation statistics
+  if (max_score == min_score) {
+    results <- rep(0, length(results))
+    message("All motif scores are identical; setting all normalized scores to 0.")
+  } else {
+    results <- (results - min_score) / (max_score - min_score)
+  }
   message(sprintf("Score transformation statistics:"))
   message(sprintf("  Original score range: [%.2f, %.2f]", min_score, max_score))
   message(sprintf("  Transformed score range: [%.2f, %.2f]", min(results), max(results)))
