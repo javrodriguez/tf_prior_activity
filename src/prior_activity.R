@@ -117,14 +117,14 @@ read_motifs <- function(file_path, test_mode = FALSE) {
   
   # Try to read the file with error handling
   tryCatch({
-    # First try to read with fread
-    motifs <- fread(file_path)
+    # Read the file with read.table, specifying tab as separator
+    motifs <- read.table(file_path, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
     
     if (test_mode) {
       message("Test mode: Downsampling motifs to 100,000...")
       if (nrow(motifs) > 100000) {
         set.seed(42)  # For reproducibility
-        motifs <- motifs[sample(.N, 100000)]
+        motifs <- motifs[sample(nrow(motifs), 100000), ]
       }
     }
     
@@ -138,7 +138,7 @@ read_motifs <- function(file_path, test_mode = FALSE) {
     valid_chrs <- chr_sizes$chr
     
     # Filter motifs to include only valid chromosomes
-    motifs <- motifs[motifs$sequence_name %in% valid_chrs]
+    motifs <- motifs[motifs$sequence_name %in% valid_chrs, ]
     
     # Convert to GRanges
     gr <- GRanges(
@@ -153,46 +153,7 @@ read_motifs <- function(file_path, test_mode = FALSE) {
     
     return(gr)
   }, error = function(e) {
-    # If fread fails, try to read with read.table
-    message("Error reading with fread, trying read.table...")
-    tryCatch({
-      motifs <- read.table(file_path, header = TRUE, stringsAsFactors = FALSE)
-      
-      if (test_mode) {
-        message("Test mode: Downsampling motifs to 100,000...")
-        if (nrow(motifs) > 100000) {
-          set.seed(42)
-          motifs <- motifs[sample(nrow(motifs), 100000), ]
-        }
-      }
-      
-      message(sprintf("Using %d motifs", nrow(motifs)))
-      
-      # Add 'chr' prefix if not present
-      motifs$sequence_name <- ifelse(grepl("^chr", motifs$sequence_name), motifs$sequence_name, paste0("chr", motifs$sequence_name))
-      
-      # Read chromosome sizes to filter motifs
-      chr_sizes <- read_chr_sizes(opt$genome)
-      valid_chrs <- chr_sizes$chr
-      
-      # Filter motifs to include only valid chromosomes
-      motifs <- motifs[motifs$sequence_name %in% valid_chrs, ]
-      
-      # Convert to GRanges
-      gr <- GRanges(
-        seqnames = motifs$sequence_name,
-        ranges = IRanges(start = motifs$start, end = motifs$stop),
-        strand = motifs$strand,
-        score = motifs$score
-      )
-      
-      # Ensure consistent chromosome set
-      gr <- filter_to_valid_chrs(gr)
-      
-      return(gr)
-    }, error = function(e2) {
-      stop(sprintf("Failed to read motifs file %s. Error: %s", file_path, e2$message))
-    })
+    stop(sprintf("Failed to read motifs file %s. Error: %s", file_path, e$message))
   })
 }
 
@@ -329,6 +290,22 @@ calculate_motif_activity <- function(motifs_gr, peaks_gr, tf_name, cores = 1) {
   # Clean up parallel processing
   stopCluster(cl)
   
+  # Apply Min-Max normalization
+  message("Applying Min-Max normalization to motif scores...")
+  
+  # Get min and max values
+  min_score <- min(results)
+  max_score <- max(results)
+  
+  # Apply Min-Max normalization: (x - min(x)) / (max(x) - min(x))
+  results <- (results - min_score) / (max_score - min_score)
+  
+  # Log the transformation statistics
+  message(sprintf("Score transformation statistics:"))
+  message(sprintf("  Original score range: [%.2f, %.2f]", min_score, max_score))
+  message(sprintf("  Transformed score range: [%.2f, %.2f]", min(results), max(results)))
+  message(sprintf("  Number of non-zero scores: %d", sum(results > 0)))
+  
   return(results)
 }
 
@@ -367,12 +344,11 @@ create_bigwig <- function(motifs_gr, activity_scores, output_file) {
   chr_sizes <- read_chr_sizes(opt$genome)
   
   # Ensure consistent chromosome set
+  valid_chrs <- c(paste0("chr", 1:22), "chrX")
   activity_gr <- filter_to_valid_chrs(activity_gr)
   
   # Create empty ranges for chromosomes that don't have any motifs
-  valid_chrs <- c(paste0("chr", 1:22), "chrX")
-  missing_chrs <- setdiff(valid_chrs, seqlevels(activity_gr))
-  
+  missing_chrs <- setdiff(valid_chrs, as.character(seqnames(activity_gr)))
   if (length(missing_chrs) > 0) {
     message(sprintf("Adding empty ranges for chromosomes: %s", paste(missing_chrs, collapse=", ")))
     # Create empty ranges for missing chromosomes
@@ -384,13 +360,45 @@ create_bigwig <- function(motifs_gr, activity_scores, output_file) {
     # Combine with existing ranges
     activity_gr <- c(activity_gr, empty_ranges)
   }
-  
-  # Set chromosome lengths
-  seqlengths(activity_gr) <- chr_sizes$size[match(seqlevels(activity_gr), chr_sizes$chr)]
+
+  # Set seqlevels to all valid chromosomes
+  seqlevels(activity_gr) <- valid_chrs
+
+  # Set chromosome lengths for all chromosomes
+  seqlengths(activity_gr) <- chr_sizes$size[match(valid_chrs, chr_sizes$chr)]
   
   # Export as BigWig
   message(sprintf("Saving BigWig to %s...", output_file))
   export(activity_gr, output_file, format = "BigWig")
+}
+
+# Function to validate BigWig file
+validate_bigwig <- function(bigwig_file) {
+  message("Validating BigWig file...")
+  bw <- import(bigwig_file)
+  
+  # Check if all expected chromosomes are present
+  expected_chrs <- c(paste0("chr", 1:22), "chrX")
+  missing_chrs <- setdiff(expected_chrs, unique(seqnames(bw)))
+  if (length(missing_chrs) > 0) {
+    warning(sprintf("Missing chromosomes in BigWig file: %s", paste(missing_chrs, collapse=", ")))
+  }
+  
+  # Check if activity scores are non-negative
+  neg_scores <- score(bw) < 0
+  if (any(neg_scores)) {
+    warning("Negative activity scores found in BigWig file.")
+    neg_chrs <- unique(seqnames(bw)[neg_scores])
+    message(sprintf("Negative scores found on chromosomes: %s", paste(neg_chrs, collapse=", ")))
+    message(sprintf("Total number of negative scores: %d", sum(neg_scores)))
+  }
+  
+  # Check if activity scores are within a reasonable range (e.g., < 1000)
+  if (any(score(bw) > 1000)) {
+    warning("Unusually high activity scores found in BigWig file.")
+  }
+  
+  message("BigWig validation complete.")
 }
 
 # Main function
@@ -431,6 +439,9 @@ main <- function() {
     message(sprintf("Saving CSV results to %s...", output_csv))
     fwrite(all_chrs, output_csv)
     create_bigwig(motifs_gr, activity_scores, output_bw)
+    
+    # Validate the BigWig file
+    validate_bigwig(output_bw)
   }
 
   if (opt$batch) {
